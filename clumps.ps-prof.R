@@ -14,7 +14,7 @@ lfiles <- dir(dirExp, pattern="^toGraph\\..*\\.RData$")
 db.areas0 <- lapply(paste0(dirExp, lfiles), read.graph)
 names(db.areas0) <- gsub("^toGraph\\.(.*)\\.RData$","\\1", lfiles)
 
-# get the areas for each patch in each biome
+# get the areas for each fragment in each biome
 db.areas1 <- lapply(names(db.areas0), function(x) cbind(map=x, db.areas0[[x]]$vertices))
 # and combine them in a single table
 db.areas <- rbindlist(db.areas1)

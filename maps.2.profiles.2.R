@@ -42,7 +42,7 @@ for (fbiome in lfiles) {
     }
     # if distances database exists, estimate the profiles
     if (exists("db.dist")) {
-      # filter the too small patches
+      # filter the too small fragments
       db.dist2 <- lapply(db.dist, function(x) 
         criteria(x$edges, x$vertices, v.c=expression(area >= 1e+6)))
       # apply the profile.distances with a given z value

@@ -6,15 +6,15 @@ require(data.table)
 require(raster)
 
 # Receives a raster map and creates the tables needed to build a graph:
-#   Identify the patches using the Queen's rule.
-#   Identify the edges of each patch
-#   Measure the distance among each patch and any patch with larger ID
-#   It returns a list containing: a data.frame of edges connecting the patches with the distance and identity of the nodes
-#                                 a data.frame containing the patches identity and size (areas)
+#   Identify the fragments using the Queen's rule.
+#   Identify the edges of each fragment
+#   Measure the distance among each fragment and any fragment with larger ID
+#   It returns a list containing: a data.frame of edges connecting the fragments with the distance and identity of the nodes
+#                                 a data.frame containing the fragments identity and size (areas)
 
 class.distances <- function(map, redo.clumps=FALSE, areas=NULL, mem.thre=1e7, echo=TRUE) {
   if (!class(map)=="RasterLayer") stop("Map object has to be a raster.")
-  # making the patches
+  # making the fragments
   if (redo.clumps) {
     map[!is.na(map[])] <- 1
     mapC <- clump(map, directions=8)
@@ -25,21 +25,21 @@ class.distances <- function(map, redo.clumps=FALSE, areas=NULL, mem.thre=1e7, ec
   plonglat <- isLonLat(mapC)
   if (is.null(areas)) if (plonglat) areas <- area(mapC)
   if (is.null(areas)) dA <- data.table(freq(mapC, useNA="no")) else dA <- data.table(zonal(areas, mapC, 'sum'))
-  setnames(dA,c("patch","area"))
+  setnames(dA,c("fragment","area"))
   # now the edges... using boundaries only
-  # get the boundaries of the patches
-  patches <- mapC * boundaries(mapC, type='inner', asNA=T)
-  # get the patches' perimeter points
-  dF <- data.table(as.data.frame(patches, xy=TRUE, na.rm=TRUE))
-  rm(patches)
+  # get the boundaries of the fragments
+  fragments <- mapC * boundaries(mapC, type='inner', asNA=T)
+  # get the fragments' perimeter points
+  dF <- data.table(as.data.frame(fragments, xy=TRUE, na.rm=TRUE))
+  rm(fragments)
   setnames(dF, c("x","y","P"))
-  # organize the patches from smaller to larger to prevent memory issues
-  lpatches <- dF[,.(n=.N),by=P][order(n)]
+  # organize the fragments from smaller to larger to prevent memory issues
+  lfragments <- dF[,.(n=.N),by=P][order(n)]
   setkey(dF,P)
-  setkey(lpatches,n)
-  # for each patch, measure the distances to the other patches (only those with larger P code)
+  setkey(lfragments,n)
+  # for each fragment, measure the distances to the other fragments (only those with larger P code)
   dD <- data.frame(from = integer(0), to = integer(0), dist = numeric(0))
-  mlp <- nrow(lpatches); pm <- 0; gc()
+  mlp <- nrow(lfragments); pm <- 0; gc()
   for (j in 1:(mlp-1)) {
     # counter
     if (floor(j/mlp*20) != pm) {
@@ -47,10 +47,10 @@ class.distances <- function(map, redo.clumps=FALSE, areas=NULL, mem.thre=1e7, ec
       gc()
     }
     if (echo==2) cat(j,"\n") else if (echo) cat(c("-","\\","|","/")[j%%4+1])
-    # get the points of the polygon origin (p1) and every potential destiny patch
-    p1 <- dF[.(lpatches[j,P])]
-    p2 <- dF[.(lpatches[(j+1):mlp,P])]
-    # get the distances from p1 to every patch in p2, if there is something in p2
+    # get the points of the polygon origin (p1) and every potential destiny fragment
+    p1 <- dF[.(lfragments[j,P])]
+    p2 <- dF[.(lfragments[(j+1):mlp,P])]
+    # get the distances from p1 to every fragment in p2, if there is something in p2
     if (nrow(p2)>=1) {
       # cut the problem in small sections to be sure that memory won't collapse.
       maxP2 <- floor(mem.thre/nrow(p1))
@@ -63,7 +63,7 @@ class.distances <- function(map, redo.clumps=FALSE, areas=NULL, mem.thre=1e7, ec
         # get the distances
         d1 <- pointDistance(p1[,.(x,y)], p2[sec==ii,.(x,y)], lonlat=plonglat, allpairs = T)
         if (echo) cat("\b")
-        # get the distances from the patch to each point
+        # get the distances from the fragment to each point
         if (nrow(p1) == 1) {
           p2[, dist := d1]
         } else {
@@ -77,7 +77,7 @@ class.distances <- function(map, redo.clumps=FALSE, areas=NULL, mem.thre=1e7, ec
       }
       # and look for the closest pixel
       db0 <- p2[, .(dist=min(dist)), by=.(to=P)][order(to)]
-      db1 <- db0[, .(from=lpatches[j,P], to=to, dist=dist)]
+      db1 <- db0[, .(from=lfragments[j,P], to=to, dist=dist)]
       dD <- rbind(dD, db1)
       # delete unneeded variables
       rm(p1,p2,d1, db0, db1)
@@ -127,7 +127,7 @@ map.distances <-function (i, fprefix="", echo=T, region="region", map0="map0",
   map0[] <- NA_integer_
   
   if (echo) cat("Working in biome", i, ": ")
-  # build the patches
+  # build the fragments
   map0[region == i] <- i
   cD <- class.distances(map0, redo.clumps=FALSE, areas=NULL, mem.thre=1e7)
   dD <- cbind(biome=i, cD$dD); dA <- cbind(biome=i, cD$dA)
@@ -152,7 +152,7 @@ criteria <- function(edges0, vertices0, v.criteria=NULL, e.criteria=NULL) {
   edges <- data.table(edges0)
   if (!is.null(v.criteria)) vertices <- vertices[eval(v.criteria)]
   if (!is.null(e.criteria)) edges <- edges[eval(e.criteria)]
-  edges <- edges[(edges$from %in% vertices$patch) & (edges$to %in% vertices$patch)]
+  edges <- edges[(edges$from %in% vertices$fragment) & (edges$to %in% vertices$fragment)]
   return(list(edges=edges, vertices=vertices))
 }
 
@@ -182,7 +182,7 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
   if (any(i)) names(db.edges)[i] <- "weight"
   db.vertices <- as.data.frame(db.dist$vertices)
   gr <- graph_from_data_frame(db.edges[,c("from","to","weight")], F, 
-                              vertices=db.vertices[,c("patch","area","biome")])  
+                              vertices=db.vertices[,c("fragment","area","biome")])  
   # and remove any redundant node
   gr1 <- minimum.spanning.tree(gr)
   if ((vcount(gr1) -1) != ecount(gr1)) warning("Not an minimum spanning tree.\n")
@@ -201,7 +201,7 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
   }
   # and preparing the output table
   pCols <- paste0("p",p)
-  res <- data.frame(cut = numeric(cuts+2), numPatches = integer(cuts+2), largePatch = integer(cuts+2), 
+  res <- data.frame(cut = numeric(cuts+2), numFragments = integer(cuts+2), largePatch = integer(cuts+2), 
                     matrix(0,nrow=cuts+2,ncol=length(p), dimnames=list(NULL,pCols)))
   # the algorithm will begin estimating the maximum dispersal, and will remove the links that are larger
   # from each threshold
@@ -223,7 +223,7 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
     }
     if (echo) cat(c("-","\\","|","/")[i%%4+1])
     # rebuild the tree
-    gri <- graph_from_data_frame(db.edges1[,c("from","to","weight")], F, vertices=db.vertices[,c("patch","area")])
+    gri <- graph_from_data_frame(db.edges1[,c("from","to","weight")], F, vertices=db.vertices[,c("fragment","area")])
     if (echo) cat("\b")
     # get the subsets of the graph. Each subset will be a patch
     cyc <- components(gri)
@@ -356,7 +356,7 @@ ps.profile <- function(areas,biome.var="biome", group.var="type", area.var="area
     # order the dots to use findInterval properly
     dots <- unique(dots[order(dots)])
     areas0[,vdots:=findInterval(varea,dots),by=.(vbiome,vgroup,vcol)]
-    # now, get the first record in each group, and discard the group with the largest patches
+    # now, get the first record in each group, and discard the group with the largest patch
     areas0d <- areas0[,.SD[order(-varea)][1][,.(vcs=vcs,vpos,varea)],by=.(vbiome,vgroup,vcol,vdots)][vdots != length(dots)]
     # and create a factor for the legend
     areas0d$vdotsf <- factor(areas0d$vdots,levels=0:(length(dots)-1),labels=dots)
