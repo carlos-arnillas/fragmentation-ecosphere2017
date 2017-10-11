@@ -1,6 +1,6 @@
 # Patch size profiles for the andean biomes
 source("magra.R")
-dirExp <- "data2/temp/"
+dirExp <- "data/"
 
 # read the information about the biomes
 tbordinal <- fread(paste0(dirExp, "ordinal-eng.txt"))
@@ -10,11 +10,15 @@ tbordinal[Descripcion=="Seasonally dry tropical montane forest", Descripcion:="S
 
 
 # read the graph files
+cat("Reading files.\n")
 lfiles <- dir(dirExp, pattern="^toGraph\\..*\\.RData$")
 db.areas0 <- lapply(paste0(dirExp, lfiles), read.graph)
 names(db.areas0) <- gsub("^toGraph\\.(.*)\\.RData$","\\1", lfiles)
 
+
 # get the areas for each fragment in each biome
+cat("Organizing the data.\n")
+
 db.areas1 <- lapply(names(db.areas0), function(x) cbind(map=x, db.areas0[[x]]$vertices))
 # and combine them in a single table
 db.areas <- rbindlist(db.areas1)
@@ -27,6 +31,7 @@ db.areas[Model=="present",":="(Scenario="Present",Period=NA,Model="Present",Type
 db.areas[,Biome:=as.integer(Biome)]
 
 # Building present time profiles
+cat("Building present time profiles.\n")
 # get the information from the table
 tbo1 <- tbordinal[order(factor(Abreviacion, c("eMF","Sh","xP")))][Abreviacion %in% c("eMF","Sh","xP"),.(biome=Codigo,Abreviacion,Desc=paste(c("a)","b)","c)"), Descripcion))]
 # create the figure
@@ -55,6 +60,7 @@ ggsave("ps.hp.par.gcr.dmf.prp.pdf", q2, width=8, height=4)  ## Fig.S5
 tbo2[,Desc:=gsub("\n"," ",Desc)]
 
 # now the future profiles
+cat("Building the future profiles.\n")
 # split the table in two
 tbo1 <- tbordinal[order(factor(Abreviacion, c("eMF","dMF","PrP")))][Abreviacion %in% c("eMF","dMF","PrP"),.(biome=Codigo,Abreviacion,Desc=paste(c("a)","b)","c)"), Descripcion))]
 tbo2 <- tbordinal[order(factor(Abreviacion, c("Par","GCr","Sh","xP","hP")))][(Abreviacion %in% c("Par","GCr","Sh","xP","hP")),.(biome=Codigo,Abreviacion,Desc=paste(c("a)","b)","c)","d)","e)"), Descripcion))]
@@ -98,3 +104,4 @@ qC <- grid.arrange(lplots[[7]]+theme(legend.position = "none"),
                                      legend.background = element_rect(fill = "gray90", colour = NA),
                                      legend.box.background = element_rect(fill = "gray90", colour = NA)),ncol=1)
 ggsave("ps.future.C.pdf",qC,width=10, height=8)   ## Fig. S6b
+cat("Done.\n")

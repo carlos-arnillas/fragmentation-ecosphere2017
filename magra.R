@@ -165,7 +165,7 @@ criteria <- function(edges0, vertices0, v.criteria=NULL, e.criteria=NULL) {
 #   ptype:    is p decreasing, increasing (not supported) or constant?
 #   echo:     report the advances of the function?
 # Returns a table with the R-values
-profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z = 0.25, ptype="dec", echo=T) {
+profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z = 0.25, ptype="dec", echo=T, fn=NULL) {
   # obtaining the tables
   if (class(db.dist) != 'list') {
     cat("db.dist has to be a list\n")
@@ -174,6 +174,17 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
   if (length(db.dist) != 2) {
     cat("db.dist requires two parameters\n")
     return(NULL)
+  }
+  
+  # any file to read?
+  flv <- FALSE; lpatches <- list()
+  if (!is.null(fn)) {
+    if (file.exists(fn)) {
+      lv <- load(fn)
+      if (!identical(lv, "lpatches")) stop("Wrong file:",fn)
+      flv <- TRUE
+      rm(lv)
+    }
   }
   
   # build the graph
@@ -201,7 +212,7 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
   }
   # and preparing the output table
   pCols <- paste0("p",p)
-  res <- data.frame(cut = numeric(cuts+2), numFragments = integer(cuts+2), largePatch = integer(cuts+2), 
+  res <- data.frame(cut = numeric(cuts+2), numPatches = integer(cuts+2), largePatch = integer(cuts+2), 
                     matrix(0,nrow=cuts+2,ncol=length(p), dimnames=list(NULL,pCols)))
   # the algorithm will begin estimating the maximum dispersal, and will remove the links that are larger
   # from each threshold
@@ -216,20 +227,26 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
   for (i in 2:(cuts+1)) {
     # identify the cut point
     cut <- lcuts[i]
-    # and retain only the ones shorter to the cut
-    db.edges1 <- db.edges1[db.edges1$weight <= cut,]
-    if (floor((i-1)/cuts*20) != pm) {
-      if (echo) {cat("+");pm <- pm+1}  
+    # is the cut available in the file?
+    if (flv & (paste0("c", cut) %in% names(lpatches))) {
+      lP <- lpatches[[paste0("c", cut)]]
+    } else {
+      # no,  retain only the edges shorter to the cut
+      db.edges1 <- db.edges1[db.edges1$weight <= cut,]
+      if (floor((i-1)/cuts*20) != pm) {
+        if (echo) {cat("+");pm <- pm+1}  
+      }
+      if (echo) cat(c("-","\\","|","/")[i%%4+1])
+      # rebuild the tree
+      gri <- graph_from_data_frame(db.edges1[,c("from","to","weight")], F, vertices=db.vertices[,c("fragment","area")])
+      if (echo) cat("\b")
+      # get the subsets of the graph. Each subset will be a patch
+      cyc <- components(gri)
+      lP <- (aggregate(db.vertices$area, cyc["membership"], FUN=sum)[,2])
+      lP <- lP[order(-lP)]
+      if (flv) lpatches[[paste0("c", cut)]] <- lP
     }
-    if (echo) cat(c("-","\\","|","/")[i%%4+1])
-    # rebuild the tree
-    gri <- graph_from_data_frame(db.edges1[,c("from","to","weight")], F, vertices=db.vertices[,c("fragment","area")])
-    if (echo) cat("\b")
-    # get the subsets of the graph. Each subset will be a patch
-    cyc <- components(gri)
     # and calculate the results for the patches identified
-    lP <- (aggregate(db.vertices$area, cyc["membership"], FUN=sum)[,2])
-    lP <- lP[order(-lP)]
     lS <- lP^sar.z
     res[i,2] <- length(lS)
     res[i,c(1,3)] <- c(cut, max(lP)); 
@@ -253,6 +270,8 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
   res[,pCols] <- res[,pCols]/maxS
   res[,3] <- res[,3]/maxP
   res <- cbind(biome=db.vertices[1,c("biome")], res)
+  # saving the patches
+  if (!is.null(fn)) save(lpatches, fn)
   if (echo) cat("\n")
   return(res)
 }

@@ -1,6 +1,6 @@
 # Building the patch-size profile
 #rm(list=ls())
-source("codigos/clumps.ps-prof.R")
+source("clumps.ps-prof.R")
 
 # Building the profiles
 rm(list=ls())
@@ -8,8 +8,8 @@ lsar.z <- c(0.1,0.25,1, 0.5, 0.4,0.6,0.9)
 lptype <- c("const","dec")
 for (ptype in lptype) {
   for (sar.z in lsar.z) {
-    source("codigos/maps.2.profiles.2.R")
-    source("codigos/clumps.conn-prof.uncertainty.R")
+    source("maps.2.profiles.2.R")
+    source("clumps.conn-prof.uncertainty.R")
     rm(list=setdiff(ls(),c("ptype","sar.z")))
   }
 }
@@ -18,7 +18,7 @@ rm(ptype,sar.z)
 
 # pulling together uncertainties
 library(data.table)
-dirExp <- "data2/temp/"
+dirExp <- "data/"
 lptype <- c("const","dec")
 for (ptype in lptype) {
   lfilesU <- dir(dirExp, pattern=sprintf("uncertainty\\..*\\.%s\\.csv",ptype))

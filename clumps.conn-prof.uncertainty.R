@@ -1,11 +1,11 @@
 # Analysis of the biomes' graphs
-source("codigos/magra.R")
+source("magra.R")
 library(data.table, verbose = F)
 if (!exists("sar.z")) sar.z <- 0.25
 
 # read the relevant file
 if (!exists("db.profiles")) {
-  dirExp <- "data2/temp/"
+  dirExp <- "data/"
   if (!exists("ptype")) ptype <- "dec"
     
   # read the information about the biomes

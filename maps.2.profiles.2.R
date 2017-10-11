@@ -1,11 +1,12 @@
 # From graphs to values for connectivity profiles
 library(igraph)
 library(data.table, verbose = F)
-source("codigos/magra.R")
+source("magra.R")
 
 if (!exists("sar.z")) sar.z <- 0.25
 if (!exists("ptype")) ptype <- "dec"
-if (!exists("dirExp")) dirExp <- "data2/temp/"
+if (!exists("dirExp")) dirExp <- "data/"
+plot.profiles <- FALSE
 
 # and the cuts to aggregate the fragments into patches
 lcuts <- unique(c(seq(2000,50000,by=500), seq(50000,100000,by=1000), seq(100000,2000000,by=10000)))
@@ -46,12 +47,16 @@ for (fbiome in lfiles) {
       db.dist2 <- lapply(db.dist, function(x) 
         criteria(x$edges, x$vertices, v.c=expression(area >= 1e+6)))
       # apply the profile.distances with a given z value
-      db.profile0 <- lapply(db.dist2,profile.distances,cuts=lcuts,maxPatch=1, sar.z = sar.z, ptype=ptype)
+      db.profile0 <- lapply(db.dist2, 
+                            function(x) profile.distances(x, cuts=lcuts, maxPatch=1, 
+                                                          sar.z = sar.z, ptype=ptype,
+                                                          fn = sprintf("patches.%s.%s.%s.RData",
+                                                                       fprefix, x$edges$biome[1], type)))
       # merge the tables and re-organize the table properly
       db.profiles0 <- rbindlist(db.profile0)
       db.profiles0 <- cbind(file=fprefix,type=type,z=sar.z,db.profiles0)
-      # plot it
-      conn.profile(db.profiles0, biomes, id.vars=c("type", "biome","cut"), plot=F, fn=paste0(dirExp, "profiles.", fprefix, ".", ptype, ".", type, ".", sar.z,".pdf"))
+      # plot it if needed
+      if (plot.profiles) conn.profile(db.profiles0, biomes, id.vars=c("type", "biome","cut"), plot=F, fn=paste0(dirExp, "profiles.", fprefix, ".", ptype, ".", type, ".", sar.z,".pdf"))
       # and save the data
       try(save(db.profiles0, file=paste0(dirExp, "profiles.", fprefix, ".", ptype , ".", type, ".", sar.z, ".RData")), T)
       db.profiles <- if (exists("db.profiles")) rbind(db.profiles, db.profiles0) else db.profiles0
