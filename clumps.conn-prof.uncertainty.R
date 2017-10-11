@@ -37,7 +37,7 @@ tabExtremes <- dcast(db.profiles[file=="present" & ((numPatches==1 & variable=="
                                  .(Descripcion,biome,type,unitary=(cut>1),nested=(variable=="p0"),R)][
                      ,.(Descripcion,biome,type=ifelse(type=="pot", "Tolerant", "Intolerant"),
                          comm=ifelse(unitary,"Unitary",ifelse(nested,"Nested","Disjoint")),R)],
-                     Descripcion+biome~comm+type)
+                     Descripcion+biome~comm+type, value.var="R")
 setcolorder(tabExtremes,c("Descripcion","biome","Unitary_Tolerant", "Unitary_Intolerant", 
                           "Nested_Tolerant", "Nested_Intolerant", "Disjoint_Tolerant", "Disjoint_Intolerant"))
 # export the extreme values
