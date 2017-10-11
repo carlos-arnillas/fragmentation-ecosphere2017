@@ -244,7 +244,7 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
       cyc <- components(gri)
       lP <- (aggregate(db.vertices$area, cyc["membership"], FUN=sum)[,2])
       lP <- lP[order(-lP)]
-      if (flv) lpatches[[paste0("c", cut)]] <- lP
+      if (!is.null(fn)) lpatches[[paste0("c", cut)]] <- lP
     }
     # and calculate the results for the patches identified
     lS <- lP^sar.z
@@ -271,8 +271,8 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
   res[,3] <- res[,3]/maxP
   res <- cbind(biome=db.vertices[1,c("biome")], res)
   # saving the patches
-  if (!is.null(fn)) save(lpatches, fn)
-  if (echo) cat("\n")
+  if (!is.null(fn)) save(lpatches, file=fn)
+  if (echo & !flv) cat("\n")
   return(res)
 }
 

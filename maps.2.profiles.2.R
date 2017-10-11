@@ -50,8 +50,8 @@ for (fbiome in lfiles) {
       db.profile0 <- lapply(db.dist2, 
                             function(x) profile.distances(x, cuts=lcuts, maxPatch=1, 
                                                           sar.z = sar.z, ptype=ptype,
-                                                          fn = sprintf("patches.%s.%s.%s.RData",
-                                                                       fprefix, x$edges$biome[1], type)))
+                                                          fn = sprintf("%s/patches.%s.%s.%s.RData",
+                                                                       dirExp, fprefix, x$edges$biome[1], type)))
       # merge the tables and re-organize the table properly
       db.profiles0 <- rbindlist(db.profile0)
       db.profiles0 <- cbind(file=fprefix,type=type,z=sar.z,db.profiles0)
