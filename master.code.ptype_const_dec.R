@@ -10,10 +10,10 @@ for (ptype in lptype) {
   for (sar.z in lsar.z) {
     source("maps.2.profiles.2.R")
     source("clumps.conn-prof.uncertainty.R")
-    rm(list=setdiff(ls(),c("ptype","sar.z")))
+    rm(list=setdiff(ls(),c("ptype", "sar.z", "lptype","lsar.z")))
   }
 }
-rm(ptype,sar.z)
+rm(ptype,sar.z,lptype,lsar.z)
 
 
 # pulling together uncertainties
@@ -40,5 +40,5 @@ for (ptype in lptype) {
   ggplot(uncertainties[value.var=="pssq"], aes(x=z, y=value, colour=Component)) + geom_line() + facet_wrap(~Biome) +
          geom_vline(xintercept = 0.25, colour="gray30", linetype="dashed") +
          geom_vline(xintercept = 0.4, colour="gray30", linetype="dotted") + labs(y="Proportion explained", x="Exponent (z) of the SAR model")
-  ggsave(sprintf("proportion explained_z-range_%s.pdf",ptype), width=8, height=4) # Fig. S7a and b
+  ggsave(sprintf("proportion explained_z-range_%s.pdf",ptype), width=9, height=5) # Fig. S7a and b
 }

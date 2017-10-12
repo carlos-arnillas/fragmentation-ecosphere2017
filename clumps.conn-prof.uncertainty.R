@@ -25,12 +25,14 @@ sar.z <- unique(db.profiles$z)
 if (length(na.omit(sar.z)) != 1) stop("No z-value, or more than 1.")
 
 # get the connectivity profiles for three biomes
-q3 <- conn.profile(db.profiles[file=="present" & biome %in% c("eMF","Sh","xP"),
-                                .(type2=factor(type, levels=c("pot","rem"),labels=c("Tolerant","Intolerant")),
-                                  Descripcion=factor(Descripcion,c("Evergreen forest", "Montane shrublands", "Xeric puna")),
-                                  cut,variable,R)], 
-                    id.vars=c("type2","Descripcion","cut"), measure.vars = "R", variable.name = "Species\nturnover")
-ggsave(paste0("conn.profile.emf.sh.xp.",sar.z,".",ptype,".pdf"), plot=q3, width = 7, height=3.5)
+if (ptype=="dec" & sar.z == 0.25) {
+  q3 <- conn.profile(db.profiles[file=="present" & biome %in% c("eMF","Sh","xP"),
+                                  .(type2=factor(type, levels=c("pot","rem"),labels=c("Tolerant","Intolerant")),
+                                    Descripcion=factor(Descripcion,c("Evergreen forest", "Montane shrublands", "Xeric puna")),
+                                    cut,variable,R)], 
+                      id.vars=c("type2","Descripcion","cut"), measure.vars = "R", variable.name = "Species\nturnover")
+  ggsave(paste0("conn.profile.emf.sh.xp.",sar.z,".",ptype,".pdf"), plot=q3, width = 7, height=3.5)
+}
 
 # create the table of extreme LEM-communities
 tabExtremes <- dcast(db.profiles[file=="present" & ((numPatches==1 & variable=="p0") | (cut == 0 & variable %in% c("p0","p1"))),

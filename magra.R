@@ -260,7 +260,10 @@ profile.distances <- function(db.dist, p=0:10/10, cuts=50, maxPatch=NULL, sar.z 
   lP <- lP[order(-lP)]
   lS <- lP^sar.z
   res[cuts+2,2] <- length(lS)
-  res[cuts+2,c(1,3)] <- c(0, max(lP)); res[cuts+2,pCols] <- apply(t(outer(p,(1:length(lS)-1),"^"))*lS,2,sum)
+  res[cuts+2,c(1,3)] <- c(0, max(lP))
+  res[cuts+2,pCols] <- switch(ptype, "dec"=apply(t(outer(p,(1:length(lS)-1),"^"))*lS,2,sum), 
+                              "const"=apply(t(cbind(1,matrix(p,nrow=length(p),ncol=length(lS)-1)))*lS,2,sum), 
+                              "inc"=stop("Not supported yet."))
   # look for pre-defined reference values
   if (!is.null(maxPatch)) {
     maxP <- maxPatch
